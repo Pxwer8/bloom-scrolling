@@ -44,7 +44,9 @@ private val permissionRows = listOf(
         title = "Usage access",
         isGranted = { ctx ->
             val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            appOps.unsafeCheckOpNoThrow(
+            // checkOpNoThrow (not unsafeCheckOpNoThrow, API 29+) — minSdk is 26.
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
                 AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName
             ) == AppOpsManager.MODE_ALLOWED
         },

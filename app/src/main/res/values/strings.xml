@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BloomScrolling</string>
+    <string name="accessibility_service_description">BloomScrolling uses this permission to detect when you open apps you\'ve chosen to monitor, so it can track your usage and help you reduce mindless scrolling. It does not read or record the content of other apps.</string>
 </resources>
