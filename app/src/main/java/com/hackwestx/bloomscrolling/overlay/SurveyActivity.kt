@@ -5,28 +5,35 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.hackwestx.bloomscrolling.data.SurveyDao
 import com.hackwestx.bloomscrolling.data.SurveyResponse
-import com.hackwestx.bloomscrolling.ui.theme.BloomScrollingTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -51,12 +58,13 @@ class SurveyActivity : ComponentActivity() {
         val triggeringPackage = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: UNKNOWN_PACKAGE
 
         setContent {
-            BloomScrollingTheme {
-                SurveyContent(
-                    onAnswer = { reason -> saveAndClose(reason, triggeringPackage) },
-                    onProceedAnyway = { finish() }
-                )
-            }
+            // Sem BloomScrollingTheme aqui de propósito: aquele tema puxa as
+            // cores dinâmicas do sistema (roxo, azul, o que o usuário tiver).
+            // Esta tela define cada cor na mão para ficar 100% monocromática.
+            SurveyContent(
+                onAnswer = { reason -> saveAndClose(reason, triggeringPackage) },
+                onProceedAnyway = { finish() }
+            )
         }
     }
 
@@ -92,6 +100,36 @@ class SurveyActivity : ComponentActivity() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Visual: preto, branco e cinza. Nada de cor vibrante, nada de sombra, nada
+// de animação — "fricção visual reduzida" significa que a tela não compete
+// por atenção; ela só pausa o usuário por um segundo.
+// ---------------------------------------------------------------------------
+
+private data class SurveyPalette(
+    val scrim: Color,     // escurece o app que está atrás
+    val surface: Color,   // fundo do painel
+    val text: Color,      // pergunta e rótulos dos botões
+    val muted: Color,     // texto secundário ("Proceed anyway")
+    val border: Color     // contorno fino dos botões
+)
+
+private val LightPalette = SurveyPalette(
+    scrim = Color(0xFF000000).copy(alpha = 0.55f),
+    surface = Color(0xFFFAFAFA),
+    text = Color(0xFF111111),
+    muted = Color(0xFF757575),
+    border = Color(0xFFDCDCDC)
+)
+
+private val DarkPalette = SurveyPalette(
+    scrim = Color(0xFF000000).copy(alpha = 0.72f),
+    surface = Color(0xFF141414),
+    text = Color(0xFFF2F2F2),
+    muted = Color(0xFF8A8A8A),
+    border = Color(0xFF2E2E2E)
+)
+
 // Texto do botão (inglês, o que o usuário vê) -> valor salvo no banco,
 // no mesmo formato que o SurveyResponse documenta.
 private val REASON_OPTIONS = listOf(
@@ -106,41 +144,86 @@ private fun SurveyContent(
     onAnswer: (String) -> Unit,
     onProceedAnyway: () -> Unit
 ) {
-    // A janela é transparente, então esse Box escuro é o "vidro fosco"
-    // que escurece o app que está atrás.
+    val palette = if (isSystemInDarkTheme()) DarkPalette else LightPalette
+
+    // A janela é transparente, então este Box é o "vidro fosco" que
+    // escurece o app de trás sem escondê-lo por completo.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .padding(24.dp),
+            .background(palette.scrim)
+            .padding(28.dp),
         contentAlignment = Alignment.Center
     ) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+        Surface(
+            color = palette.surface,
+            shape = RoundedCornerShape(4.dp), // canto quase reto, sem "bolha"
+            tonalElevation = 0.dp,            // zero sombra: nada flutua
+            shadowElevation = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 420.dp)        // não estica demais em tablet
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp)) {
                 Text(
                     text = "Why are you opening this right now?",
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    color = palette.text,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal, // peso normal: pergunta, não alarme
+                    lineHeight = 28.sp
                 )
-                REASON_OPTIONS.forEach { (label, storedValue) ->
-                    Button(
-                        onClick = { onAnswer(storedValue) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(label)
+
+                Spacer(Modifier.height(24.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    REASON_OPTIONS.forEach { (label, storedValue) ->
+                        ReasonButton(
+                            label = label,
+                            palette = palette,
+                            onClick = { onAnswer(storedValue) }
+                        )
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Saída sem registrar resposta: deliberadamente discreta —
+                // cinza, sem contorno, menor que as opções acima.
                 TextButton(
                     onClick = onProceedAnyway,
+                    colors = ButtonDefaults.textButtonColors(contentColor = palette.muted),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Proceed anyway")
+                    Text(text = "Proceed anyway", fontSize = 13.sp)
                 }
             }
         }
+    }
+}
+
+/** Botão de resposta: contorno fino, fundo transparente, texto escuro. */
+@Composable
+private fun ReasonButton(
+    label: String,
+    palette: SurveyPalette,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(1.dp, palette.border),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = palette.text
+        ),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Normal,
+            modifier = Modifier.fillMaxWidth() // alinha todos os rótulos à esquerda
+        )
     }
 }
