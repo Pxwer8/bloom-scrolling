@@ -35,6 +35,8 @@ class MonitorAccessibilityService : AccessibilityService() {
         if (packageName == lastPackage) return
         lastPackage = packageName
 
+        android.util.Log.d("BloomScrolling", "App switched to: $packageName")
+
         scope.launch {
             val settings = settingsDao.get(packageName)
             if (settings?.isBlocked == true) {
