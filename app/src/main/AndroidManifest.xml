@@ -40,6 +40,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Pergunta que aparece por cima do app monitorado.
+             exported=false: só o proprio app pode abrir.
+             excludeFromRecents: nao aparece na lista de apps recentes.
+             noHistory: se o usuario sair, a tela nao fica pendurada. -->
+        <activity
+            android:name=".overlay.SurveyActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BloomScrolling.Translucent" />
+
         <service
             android:name=".service.MonitorAccessibilityService"
             android:exported="true"
