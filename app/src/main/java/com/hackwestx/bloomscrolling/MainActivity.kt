@@ -10,7 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.hackwestx.bloomscrolling.navigation.BloomNavGraph
 import com.hackwestx.bloomscrolling.ui.theme.BloomScrollingTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
