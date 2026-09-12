@@ -11,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.hackwestx.bloomscrolling.ui.appselection.AppSelectionScreen
+import com.hackwestx.bloomscrolling.ui.onboarding.OnboardingScreen
 
 /**
  * Nomes das rotas em um só lugar. Usar as constantes daqui (em vez de
@@ -41,10 +43,18 @@ fun BloomNavGraph(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable(Routes.ONBOARDING) { PlaceholderScreen("Onboarding") }
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(
+                onAllGranted = {
+                    navController.navigate(Routes.APP_SELECTION) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Routes.DASHBOARD) { PlaceholderScreen("Dashboard") }
         composable(Routes.SETTINGS) { PlaceholderScreen("Settings") }
-        composable(Routes.APP_SELECTION) { PlaceholderScreen("App Selection") }
+        composable(Routes.APP_SELECTION) { AppSelectionScreen() }
         composable(Routes.SURVEY_OVERLAY) { PlaceholderScreen("Survey Overlay") }
     }
 }
