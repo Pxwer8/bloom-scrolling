@@ -166,6 +166,68 @@ class TimeSavedTest {
     }
 
     @Test
+    fun `a perfect day improves weeks saved instead of being ignored`() {
+        val settings = listOf(monitored(limit = 30))
+        // Um único dia registrado, gasto até o limite: economia zero.
+        val usedDay = listOf(UsageLog("2026-09-01", INSTAGRAM, totalMinutes = 30, pickupCount = 1))
+
+        val onlyUsedDay = calculateTimeSaved(usedDay, settings, FIRST_OF_MONTH)
+        // Mesmo histórico, mas o período já tem um segundo dia — sem uso nenhum.
+        val plusPerfectDay = calculateTimeSaved(usedDay, settings, FIRST_OF_MONTH.plusDays(1))
+
+        assertEquals(0.0, onlyUsedDay.weeksSaved, 0.0)
+        assertEquals(30.0 / 6720, plusPerfectDay.weeksSaved, 0.0001)
+        assertTrue(plusPerfectDay.weeksSaved > onlyUsedDay.weeksSaved)
+    }
+
+    @Test
+    fun `a perfect day improves the projected hours per year instead of being ignored`() {
+        val settings = listOf(monitored(limit = 30))
+        val usedDay = listOf(UsageLog("2026-09-01", INSTAGRAM, totalMinutes = 30, pickupCount = 1))
+
+        val onlyUsedDay = calculateTimeSaved(usedDay, settings, FIRST_OF_MONTH)
+        val plusPerfectDay = calculateTimeSaved(usedDay, settings, FIRST_OF_MONTH.plusDays(1))
+
+        // 1 dia, economia 0 -> média 0/dia -> 0 h/ano.
+        assertEquals(0, onlyUsedDay.projectedHoursPerYear)
+        // 2 dias, economia 30 -> média 15 min/dia -> 15 * 365 / 60 = 91 h/ano.
+        assertEquals(91, plusPerfectDay.projectedHoursPerYear)
+    }
+
+    @Test
+    fun `the projection averages over every tracked day, not only the active ones`() {
+        // 1 dia de uso no limite cheio + 9 dias perfeitos.
+        // Economia: 0 + 9 x 30 = 270 em 10 dias -> média 27 min/dia
+        // -> 27 * 365 / 60 = 164 h/ano.
+        // Se a média ainda dividisse por daysActive (= 1), daria 270 min/dia,
+        // ou seja, nove vezes o próprio limite diário: absurdo.
+        val summary = calculateTimeSaved(
+            logs = listOf(UsageLog("2026-09-01", INSTAGRAM, totalMinutes = 30, pickupCount = 1)),
+            settings = listOf(monitored(limit = 30)),
+            today = LocalDate.of(2026, 9, 10)
+        )
+
+        assertEquals(1, summary.daysActive)
+        assertEquals(164, summary.projectedHoursPerYear)
+    }
+
+    @Test
+    fun `all-time totals start at the first logged day, not before it`() {
+        // Primeiro (e único) registro no dia 10, hoje é 12: o período são
+        // 3 dias, não o mês inteiro nem desde sempre.
+        // Economia: 3 x 30 = 90 minutos.
+        val summary = calculateTimeSaved(
+            logs = listOf(UsageLog("2026-09-10", INSTAGRAM, totalMinutes = 0, pickupCount = 0)),
+            settings = listOf(monitored(limit = 30)),
+            today = TODAY
+        )
+
+        assertEquals(90.0 / 6720, summary.weeksSaved, 0.0001)
+        // Média 30 min/dia -> 30 * 365 / 60 = 182,5 -> 183 h/ano.
+        assertEquals(183, summary.projectedHoursPerYear)
+    }
+
+    @Test
     fun `a realistic week of saving shows up as a visible fraction of a week`() {
         // 7 dias economizando 30 min cada = 210 min.
         // Divisor antigo (10.080): 0,02 -> aparecia como "0.0" na tela.

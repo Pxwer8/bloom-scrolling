@@ -11,13 +11,14 @@ import kotlin.math.roundToInt
 // not a product decision:
 //   - per (app, day): minutes saved = max(0, dailyLimitMinutes - actual
 //     minutes that day). Going over the limit saves nothing (never negative).
-//   - "% saved this month" = month's total saved minutes / month's total
-//     limit-minutes budget, across monitored apps and across every DAY of the
-//     month so far (not only days with a usage_log row).
-//   - "weeks saved" = all-time total saved minutes, expressed in "waking
-//     weeks" ([WAKING_MINUTES_PER_WEEK]), not 168-hour calendar weeks.
-//   - "hours/year projected" = average daily saved minutes so far,
-//     annualized.
+//   - every stat below walks CALENDAR DAYS, never usage_log rows, so a day
+//     with no usage at all counts as saving the whole limit instead of
+//     disappearing from the maths (see [scanDays]).
+//   - "% saved this month" = saved / budget over the days of this month.
+//   - "weeks saved" = all-time saved minutes in "waking weeks"
+//     ([WAKING_MINUTES_PER_WEEK]), not 168-hour calendar weeks.
+//   - "hours/year projected" = average saved minutes per day over the whole
+//     tracked period, annualized.
 // Flag this to the team before treating the numbers as real — same category
 // as the App Selection default daily limit.
 // ---------------------------------------------------------------------------
@@ -49,6 +50,9 @@ fun calculateTimeSaved(
     // Só conta como "dia ativo" o dia em que houve uso de um app MONITORADO.
     // Antes contava qualquer linha do usage_log, então um app que o usuário
     // nem pediu para acompanhar inflava o número.
+    //
+    // Este número é só para exibição. Ele NÃO é mais o divisor da média
+    // diária — ver [projectedHoursPerYear] abaixo.
     val daysActive = logs
         .filter { it.packageName in limits }
         .map { it.date }
@@ -64,75 +68,95 @@ fun calculateTimeSaved(
         )
     }
 
-    fun minutesSaved(log: UsageLog): Int {
-        val limit = limits[log.packageName] ?: return 0
-        return (limit - log.totalMinutes).coerceAtLeast(0)
-    }
-
-    val totalMinutesSavedAllTime = logs.sumOf(::minutesSaved)
-
-    val percentSavedThisMonth = percentSavedInMonth(logs, limits, today)
-
-    val weeksSaved = totalMinutesSavedAllTime.toDouble() / WAKING_MINUTES_PER_WEEK
-
-    val averageDailyMinutesSaved = if (daysActive > 0) {
-        totalMinutesSavedAllTime.toDouble() / daysActive
-    } else {
-        0.0
-    }
-    val projectedHoursPerYear = ((averageDailyMinutesSaved * 365) / 60).roundToInt()
-
-    return TimeSavedSummary(
-        percentSavedThisMonth = percentSavedThisMonth,
-        daysActive = daysActive,
-        weeksSaved = weeksSaved,
-        projectedHoursPerYear = projectedHoursPerYear
-    )
-}
-
-/**
- * Porcentagem economizada no mês corrente.
- *
- * Percorre os DIAS do calendário, não as linhas do usage_log. Essa é a
- * correção principal: um dia em que o usuário não abriu nenhum app monitorado
- * não gera linha no banco, e antes esse dia sumia das duas pontas da conta
- * (numerador e denominador) — ou seja, o dia perfeito não melhorava nada.
- * Agora ele entra com economia igual ao limite inteiro, que é o que ele é.
- *
- * O intervalo vai do dia 1 do mês (ou do primeiro dia com registro, o que for
- * mais recente) até hoje. O piso pelo primeiro registro evita creditar dias
- * anteriores à instalação do app; parar em hoje evita creditar o futuro.
- */
-private fun percentSavedInMonth(
-    logs: List<UsageLog>,
-    limits: Map<String, Int>,
-    today: LocalDate
-): Int {
     val minutesByDate: Map<String, Map<String, Int>> = logs
         .groupBy { it.date }
         .mapValues { (_, dayLogs) -> dayLogs.associate { it.packageName to it.totalMinutes } }
 
-    val firstLoggedDay = minutesByDate.keys.minOrNull()?.let(LocalDate::parse) ?: return 0
-    val rangeStart = maxOf(today.withDayOfMonth(1), firstLoggedDay)
-    if (rangeStart.isAfter(today)) return 0
+    // Piso de todo cálculo: o primeiro dia com registro. Sem ele, dias
+    // anteriores à instalação do app (que não têm uso nenhum) entrariam como
+    // economia grátis e todos os números explodiriam.
+    val firstLoggedDay = minutesByDate.keys.minOrNull()?.let(LocalDate::parse)
+        ?: return TimeSavedSummary(0, daysActive, 0.0, 0)
+
+    // Período inteiro acompanhado: do primeiro registro até hoje.
+    val allTime = scanDays(minutesByDate, limits, from = firstLoggedDay, to = today)
+
+    // Mês corrente: do dia 1 (ou do primeiro registro, se for mais recente)
+    // até hoje. Mesmo piso, janela menor.
+    val thisMonth = scanDays(
+        minutesByDate,
+        limits,
+        from = maxOf(today.withDayOfMonth(1), firstLoggedDay),
+        to = today
+    )
+
+    val weeksSaved = allTime.savedMinutes.toDouble() / WAKING_MINUTES_PER_WEEK
+
+    // Média sobre TODOS os dias do período, não só sobre os dias com uso
+    // registrado. Se o numerador passou a incluir os dias perfeitos, o
+    // denominador precisa incluí-los também — senão a média fica acima do
+    // próprio limite diário (ex.: 10 dias economizando 30 min divididos por
+    // 1 "dia ativo" dariam 300 min/dia).
+    val averageDailyMinutesSaved = if (allTime.dayCount > 0) {
+        allTime.savedMinutes.toDouble() / allTime.dayCount
+    } else {
+        0.0
+    }
+
+    return TimeSavedSummary(
+        percentSavedThisMonth = thisMonth.percent(),
+        daysActive = daysActive,
+        weeksSaved = weeksSaved,
+        projectedHoursPerYear = ((averageDailyMinutesSaved * 365) / 60).roundToInt()
+    )
+}
+
+/** Economia, orçamento e quantidade de dias de um intervalo. */
+private data class SavedOverRange(
+    val savedMinutes: Int,
+    val budgetMinutes: Int,
+    val dayCount: Int
+) {
+    fun percent(): Int {
+        if (budgetMinutes == 0) return 0
+        return ((savedMinutes.toDouble() / budgetMinutes) * 100)
+            .coerceIn(0.0, 100.0)
+            .roundToInt()
+    }
+}
+
+/**
+ * Varre DIA A DIA do calendário, de [from] até [to] inclusive, somando quanto
+ * foi economizado e quanto era o orçamento.
+ *
+ * Esta é a peça central das correções: iterar sobre dias em vez de sobre as
+ * linhas do usage_log. Um dia em que o usuário não abriu nenhum app monitorado
+ * simplesmente não tem linha no banco — iterando linhas, esse dia sumia da
+ * conta inteira em vez de contar como economia total, que é o que ele é.
+ */
+private fun scanDays(
+    minutesByDate: Map<String, Map<String, Int>>,
+    limits: Map<String, Int>,
+    from: LocalDate,
+    to: LocalDate
+): SavedOverRange {
+    if (from.isAfter(to)) return SavedOverRange(0, 0, 0)
 
     var savedMinutes = 0
     var budgetMinutes = 0
-    var day = rangeStart
+    var dayCount = 0
+    var day = from
 
-    while (!day.isAfter(today)) {
+    while (!day.isAfter(to)) {
         val minutesThisDay = minutesByDate[day.toString()].orEmpty()
         limits.forEach { (packageName, limit) ->
             budgetMinutes += limit
             // Sem linha no log = zero minutos usados = economizou o limite todo.
             savedMinutes += (limit - (minutesThisDay[packageName] ?: 0)).coerceAtLeast(0)
         }
+        dayCount++
         day = day.plusDays(1)
     }
 
-    if (budgetMinutes == 0) return 0
-
-    return ((savedMinutes.toDouble() / budgetMinutes) * 100)
-        .coerceIn(0.0, 100.0)
-        .roundToInt()
+    return SavedOverRange(savedMinutes, budgetMinutes, dayCount)
 }
