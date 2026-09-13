@@ -58,9 +58,11 @@ class MonitorAccessibilityService : AccessibilityService() {
                 onBlocklistedAppOpened(settings)
             } else {
                 // Trocou para um app que não é monitorado: fecha a contagem que
-                // estiver aberta. A decisão de blocklist acima não mudou — isto
-                // é só o outro lado do gatilho do timer.
+                // estiver aberta e tira o filtro de cor. A decisão de blocklist
+                // acima não mudou — isto é só o outro lado do gatilho do timer
+                // e do filtro.
                 UsageTimerService.stop(this@MonitorAccessibilityService)
+                ColorFilterService.stop(this@MonitorAccessibilityService)
             }
         }
     }
@@ -79,6 +81,7 @@ class MonitorAccessibilityService : AccessibilityService() {
         // A contagem de uso NÃO é afetada pelo cooldown: ela começa toda vez,
         // com ou sem pergunta. O cooldown silencia só a survey.
         UsageTimerService.start(this, packageName)
+        ColorFilterService.start(this)
 
         val now = System.currentTimeMillis()
         val elapsedSinceLastSurvey = now - settings.lastSurveyTimestamp
