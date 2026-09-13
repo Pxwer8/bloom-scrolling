@@ -106,8 +106,8 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f)
                 )
                 StatBlock(
-                    value = "%.1f".format(state.summary.weeksSaved),
-                    label = "Weeks Saved",
+                    value = "%.1f".format(state.summary.hoursSaved),
+                    label = "Hours Saved",
                     modifier = Modifier.weight(1f)
                 )
                 StatBlock(

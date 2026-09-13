@@ -1,8 +1,10 @@
 package com.hackwestx.bloomscrolling.service
 
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
@@ -44,7 +46,35 @@ class ColorFilterService : Service() {
 
     private val windowManager by lazy { getSystemService(WINDOW_SERVICE) as WindowManager }
 
+    /**
+     * A tela apagar NÃO gera evento de acessibilidade — sem isto, a camada
+     * laranja continuaria pendurada por cima de tudo, inclusive da tela de
+     * bloqueio, quando o aparelho fosse acordado. Mesmo tratamento que o
+     * UsageTimerService já faz para a contagem de tempo.
+     */
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // onReceive já roda na thread principal, que é onde o
+            // WindowManager exige ser chamado.
+            stopFilter()
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // Sem isto, startForeground() pode rodar antes de qualquer outro
+        // serviço ter criado o canal e derrubar o app com
+        // "Bad notification for startForeground: No Channel found".
+        NotificationHelper.createChannel(this)
+        ContextCompat.registerReceiver(
+            this,
+            screenOffReceiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Android 14+ exige startForeground() nos primeiros ~5 segundos,
@@ -64,6 +94,7 @@ class ColorFilterService : Service() {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(screenOffReceiver)
         tickJob?.cancel()
         removeOverlay()
         scope.cancel()

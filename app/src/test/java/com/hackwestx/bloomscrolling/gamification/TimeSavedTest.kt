@@ -26,7 +26,7 @@ class TimeSavedTest {
             today = TODAY
         )
         assertEquals(0, summary.percentSavedThisMonth)
-        assertEquals(0.0, summary.weeksSaved, 0.0)
+        assertEquals(0.0, summary.hoursSaved, 0.0)
         assertEquals(0, summary.projectedHoursPerYear)
     }
 
@@ -151,22 +151,21 @@ class TimeSavedTest {
     }
 
     // -----------------------------------------------------------------------
-    // weeksSaved
+    // hoursSaved
     // -----------------------------------------------------------------------
 
     @Test
-    fun `weeks saved converts all-time saved minutes into waking-week units`() {
-        // 7 dias economizando 16h (960 min) cada = 6.720 min = uma semana
-        // de vigília inteira.
+    fun `hours saved converts all-time saved minutes into hours`() {
+        // 7 dias economizando 16h (960 min) cada = 6.720 min = 112 horas.
         val logs = (0..6).map {
             UsageLog(TODAY.minusDays(it.toLong()).toString(), INSTAGRAM, totalMinutes = 0, pickupCount = 0)
         }
         val summary = calculateTimeSaved(logs, listOf(monitored(limit = 960)), TODAY)
-        assertEquals(1.0, summary.weeksSaved, 0.001)
+        assertEquals(112.0, summary.hoursSaved, 0.001)
     }
 
     @Test
-    fun `a perfect day improves weeks saved instead of being ignored`() {
+    fun `a perfect day improves hours saved instead of being ignored`() {
         val settings = listOf(monitored(limit = 30))
         // Um único dia registrado, gasto até o limite: economia zero.
         val usedDay = listOf(UsageLog("2026-09-01", INSTAGRAM, totalMinutes = 30, pickupCount = 1))
@@ -175,9 +174,9 @@ class TimeSavedTest {
         // Mesmo histórico, mas o período já tem um segundo dia — sem uso nenhum.
         val plusPerfectDay = calculateTimeSaved(usedDay, settings, FIRST_OF_MONTH.plusDays(1))
 
-        assertEquals(0.0, onlyUsedDay.weeksSaved, 0.0)
-        assertEquals(30.0 / 6720, plusPerfectDay.weeksSaved, 0.0001)
-        assertTrue(plusPerfectDay.weeksSaved > onlyUsedDay.weeksSaved)
+        assertEquals(0.0, onlyUsedDay.hoursSaved, 0.0)
+        assertEquals(0.5, plusPerfectDay.hoursSaved, 0.0001) // 30 min
+        assertTrue(plusPerfectDay.hoursSaved > onlyUsedDay.hoursSaved)
     }
 
     @Test
@@ -222,20 +221,20 @@ class TimeSavedTest {
             today = TODAY
         )
 
-        assertEquals(90.0 / 6720, summary.weeksSaved, 0.0001)
+        assertEquals(1.5, summary.hoursSaved, 0.0001) // 90 min
         // Média 30 min/dia -> 30 * 365 / 60 = 182,5 -> 183 h/ano.
         assertEquals(183, summary.projectedHoursPerYear)
     }
 
     @Test
-    fun `a realistic week of saving shows up as a visible fraction of a week`() {
-        // 7 dias economizando 30 min cada = 210 min.
-        // Divisor antigo (10.080): 0,02 -> aparecia como "0.0" na tela.
-        // Divisor novo (6.720): 0,031 -> ainda pequeno, mas o dobro.
+    fun `a realistic week of saving shows up as a readable number of hours`() {
+        // 7 dias economizando 30 min cada = 210 min = 3,5 horas.
+        // Como "semanas" isto dava 0,03 e a tela mostrava "0.0"; em horas
+        // vira "3.5", que é um número que a pessoa reconhece.
         val logs = (0..6).map {
             UsageLog(TODAY.minusDays(it.toLong()).toString(), INSTAGRAM, totalMinutes = 0, pickupCount = 0)
         }
         val summary = calculateTimeSaved(logs, listOf(monitored(limit = 30)), TODAY)
-        assertEquals(210.0 / 6720, summary.weeksSaved, 0.0001)
+        assertEquals(3.5, summary.hoursSaved, 0.0001)
     }
 }

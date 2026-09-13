@@ -15,28 +15,22 @@ import kotlin.math.roundToInt
 //     with no usage at all counts as saving the whole limit instead of
 //     disappearing from the maths (see [scanDays]).
 //   - "% saved this month" = saved / budget over the days of this month.
-//   - "weeks saved" = all-time saved minutes in "waking weeks"
-//     ([WAKING_MINUTES_PER_WEEK]), not 168-hour calendar weeks.
+//   - "hours saved" = all-time saved minutes, em horas. Era "semanas
+//     economizadas", mas mesmo com um divisor de semana de vigília o número
+//     ficava abaixo de 0,1 para qualquer economia realista — horas é a
+//     unidade em que a economia realmente aparece.
 //   - "hours/year projected" = average saved minutes per day over the whole
 //     tracked period, annualized.
 // Flag this to the team before treating the numbers as real — same category
 // as the App Selection default daily limit.
 // ---------------------------------------------------------------------------
 
-/**
- * Uma "semana de vigília": 16 horas por dia, 7 dias.
- *
- * Dividir por uma semana corrida (7 × 24 × 60 = 10.080) fazia o número ficar
- * praticamente sempre 0.0 na tela, porque ninguém economiza tempo de tela
- * enquanto dorme. Comparar com as horas acordado é a comparação que o usuário
- * de fato faz na cabeça.
- */
-private const val WAKING_MINUTES_PER_WEEK = 16 * 60 * 7 // 6.720
+private const val MINUTES_PER_HOUR = 60.0
 
 data class TimeSavedSummary(
     val percentSavedThisMonth: Int,
     val daysActive: Int,
-    val weeksSaved: Double,
+    val hoursSaved: Double,
     val projectedHoursPerYear: Int
 )
 
@@ -63,7 +57,7 @@ fun calculateTimeSaved(
         return TimeSavedSummary(
             percentSavedThisMonth = 0,
             daysActive = daysActive,
-            weeksSaved = 0.0,
+            hoursSaved = 0.0,
             projectedHoursPerYear = 0
         )
     }
@@ -90,7 +84,7 @@ fun calculateTimeSaved(
         to = today
     )
 
-    val weeksSaved = allTime.savedMinutes.toDouble() / WAKING_MINUTES_PER_WEEK
+    val hoursSaved = allTime.savedMinutes / MINUTES_PER_HOUR
 
     // Média sobre TODOS os dias do período, não só sobre os dias com uso
     // registrado. Se o numerador passou a incluir os dias perfeitos, o
@@ -106,7 +100,7 @@ fun calculateTimeSaved(
     return TimeSavedSummary(
         percentSavedThisMonth = thisMonth.percent(),
         daysActive = daysActive,
-        weeksSaved = weeksSaved,
+        hoursSaved = hoursSaved,
         projectedHoursPerYear = ((averageDailyMinutesSaved * 365) / 60).roundToInt()
     )
 }
