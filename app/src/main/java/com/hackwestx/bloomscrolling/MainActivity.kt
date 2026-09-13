@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import com.hackwestx.bloomscrolling.navigation.BloomNavGraph
-import com.hackwestx.bloomscrolling.navigation.Routes
 import com.hackwestx.bloomscrolling.overlay.SurveyActivity
 import com.hackwestx.bloomscrolling.service.MyForegroundService
 import com.hackwestx.bloomscrolling.ui.theme.BloomScrollingTheme
@@ -66,24 +65,14 @@ class MainActivity : ComponentActivity() {
             BloomScrollingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val navController = rememberNavController()
-                    Column(modifier = Modifier.padding(innerPadding)) {
-                        // Toda a navegação do app vive no NavGraph.
-                        // weight(1f) = o NavGraph ocupa todo o espaço que
-                        // sobrar depois dos botões de debug lá embaixo.
-                        BloomNavGraph(
-                            modifier = Modifier.weight(1f),
-                            navController = navController
-                        )
-                        // BuildConfig.DEBUG é `true` só no build de debug. Como
-                        // é uma constante conhecida em tempo de compilação, o
-                        // compilador remove este bloco inteiro do APK de
-                        // release — o código fica aqui, mas não é publicado.
-                        if (BuildConfig.DEBUG) {
-                            DebugSettingsButton(onClick = { navController.navigate(Routes.SETTINGS) })
-                            DebugSurveyButton()
-                            DebugStartServiceButton(onClick = { startServiceWithPermissionCheck() })
-                        }
-                    }
+                    // Debug buttons (Settings/Survey/Start Service) removed from
+                    // the visible UI - Settings is now reachable for real via
+                    // the gear icon on Home. Their composables are still defined
+                    // below for quick manual testing; just not called anymore.
+                    BloomNavGraph(
+                        modifier = Modifier.padding(innerPadding),
+                        navController = navController
+                    )
                 }
             }
         }

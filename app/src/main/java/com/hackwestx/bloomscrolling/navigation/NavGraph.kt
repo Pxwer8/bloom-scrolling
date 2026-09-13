@@ -68,7 +68,7 @@ fun BloomNavGraph(
                 }
             )
         }
-        composable(Routes.MAIN) { MainShell() }
+        composable(Routes.MAIN) { MainShell(outerNavController = navController) }
         composable(Routes.SETTINGS) { SettingsScreen() }
     }
 }
@@ -77,9 +77,13 @@ fun BloomNavGraph(
  * Bottom-nav shell: Home / Community / Apps / Streak share one Scaffold with
  * BloomBottomNav, in their own nested NavHost so tab switches don't touch the
  * outer graph's back stack (Splash/Onboarding/Settings).
+ *
+ * Settings lives on the OUTER graph (it's not a bottom-nav tab), so opening
+ * it from Home navigates on [outerNavController], not the inner one - the
+ * inner one has no route registered for it.
  */
 @Composable
-private fun MainShell() {
+private fun MainShell(outerNavController: NavHostController) {
     val innerNavController = rememberNavController()
 
     Scaffold(bottomBar = { BloomBottomNav(innerNavController) }) { innerPadding ->
@@ -88,7 +92,9 @@ private fun MainShell() {
             startDestination = Routes.HOME,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Routes.HOME) { HomeScreen() }
+            composable(Routes.HOME) {
+                HomeScreen(onOpenSettings = { outerNavController.navigate(Routes.SETTINGS) })
+            }
             composable(Routes.COMMUNITY) { CommunityScreen() }
             composable(Routes.APP_SELECTION) { AppSelectionScreen() }
             composable(Routes.STREAK) { StreakScreen() }
