@@ -34,6 +34,9 @@ android {
     }
     buildFeatures {
         compose = true
+        // Gera a classe BuildConfig (com o campo DEBUG). A partir do AGP 8
+        // ela vem desligada por padrão; sem isto, BuildConfig.DEBUG não existe.
+        buildConfig = true
     }
     testOptions {
         unitTests {
@@ -46,6 +49,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
