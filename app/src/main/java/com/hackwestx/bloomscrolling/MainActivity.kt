@@ -145,7 +145,7 @@ private fun DebugStartServiceButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        Text("DEBUG: Iniciar Serviço")
+        Text("DEBUG: Start Service")
     }
 }
 
@@ -166,7 +166,7 @@ fun UsageStatsSpike(modifier: Modifier = Modifier, onStartService: () -> Unit = 
         Text(text = resultText)
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { onStartService() }) {
-            Text("Iniciar Serviço")
+            Text("Start Service")
         }
     }
 }

@@ -48,6 +48,17 @@
                 android:value="skeleton_phase1" />
         </service>
 
+        <!-- Cronômetro de uso: roda em primeiro plano enquanto o app
+             monitorado está aberto, por isso precisa de foregroundServiceType. -->
+        <service
+            android:name=".service.UsageTimerService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="screen_time_tracking" />
+        </service>
+
         <!-- Pergunta que aparece por cima do app monitorado.
              exported=false: só o proprio app pode abrir.
              excludeFromRecents: nao aparece na lista de apps recentes.

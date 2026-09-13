@@ -46,6 +46,11 @@ class MonitorAccessibilityService : AccessibilityService() {
             val settings = settingsDao.get(packageName)
             if (settings?.isBlocked == true) {
                 onBlocklistedAppOpened(packageName)
+            } else {
+                // Trocou para um app que não é monitorado: fecha a contagem que
+                // estiver aberta. A decisão de blocklist acima não mudou — isto
+                // é só o outro lado do gatilho do timer.
+                UsageTimerService.stop(this@MonitorAccessibilityService)
             }
         }
     }
@@ -56,9 +61,12 @@ class MonitorAccessibilityService : AccessibilityService() {
         // ponytail: no cooldown yet, will ask on every single switch even
         // seconds apart. Add a lastSurveyTimestamp to UserSettings if that
         // turns out to be annoying in testing.
-        startActivity(SurveyActivity.newIntent(this, packageName))
+        // Timer primeiro, survey depois: a SurveyActivity é do nosso próprio
+        // pacote, e o filtro lá em cima ignora eventos dela — então abrir a
+        // pergunta não interrompe a contagem que acabou de começar.
+        UsageTimerService.start(this, packageName)
 
-        // Still Person B's job: start/refresh UsageTimerService here too.
+        startActivity(SurveyActivity.newIntent(this, packageName))
     }
 
     override fun onInterrupt() {}

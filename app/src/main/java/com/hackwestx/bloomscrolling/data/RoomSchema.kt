@@ -8,6 +8,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 // ---------------------------------------------------------------------------
@@ -66,11 +67,21 @@ interface UsageDao {
     @Query("SELECT * FROM usage_log WHERE date = :date AND packageName = :packageName LIMIT 1")
     suspend fun getForToday(date: String, packageName: String): UsageLog?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    // @Upsert em vez de @Insert(REPLACE): com chave composta (date, packageName),
+    // o REPLACE apaga a linha e insere outra — o que zera qualquer coluna que a
+    // nova linha não trouxer. O @Upsert atualiza a linha existente no lugar.
+    @Upsert
     suspend fun upsert(log: UsageLog)
 
     @Query("SELECT * FROM usage_log WHERE date = :date")
     fun observeForDate(date: String): Flow<List<UsageLog>>
+
+    // Linhas cruas (uma por app por dia) a partir de uma data — é o que o
+    // StreakCalculator precisa, já que ele compara o uso de CADA app com o
+    // limite dele. observeDailyTotals não serve: ela soma tudo e perde o
+    // packageName.
+    @Query("SELECT * FROM usage_log WHERE date >= :since ORDER BY date ASC")
+    fun observeSince(since: String): Flow<List<UsageLog>>
 
     @Query(
         """
