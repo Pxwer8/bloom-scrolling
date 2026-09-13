@@ -31,6 +31,10 @@ class MonitorAccessibilityService : AccessibilityService() {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val packageName = event.packageName?.toString() ?: return
 
+        // Ignore our own windows (SurveyActivity) — otherwise closing it back
+        // into the blocked app reads as a "new" switch and re-fires the survey.
+        if (packageName == applicationContext.packageName) return
+
         // Debounce: TYPE_WINDOW_STATE_CHANGED fires repeatedly for the same
         // foreground app (dialogs, keyboard, etc.) — only act on a real switch.
         if (packageName == lastPackage) return
