@@ -15,8 +15,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.hackwestx.bloomscrolling.ui.appselection.AppSelectionScreen
 import com.hackwestx.bloomscrolling.ui.components.BloomBottomNav
+import com.hackwestx.bloomscrolling.ui.home.HomeScreen
 import com.hackwestx.bloomscrolling.ui.onboarding.OnboardingScreen
+import com.hackwestx.bloomscrolling.ui.screens.CommunityScreen
+import com.hackwestx.bloomscrolling.ui.screens.SplashScreen
 import com.hackwestx.bloomscrolling.ui.settings.SettingsScreen
+import com.hackwestx.bloomscrolling.ui.streak.StreakScreen
 
 /**
  * Nomes das rotas em um só lugar. Usar as constantes daqui (em vez de
@@ -47,7 +51,13 @@ fun BloomNavGraph(
         modifier = modifier
     ) {
         composable(Routes.SPLASH) {
-            PlaceholderScreen("Splash")
+            SplashScreen(
+                onFinished = {
+                    navController.navigate(Routes.ONBOARDING) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
@@ -78,10 +88,10 @@ private fun MainShell() {
             startDestination = Routes.HOME,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Routes.HOME) { PlaceholderScreen("Home") }
-            composable(Routes.COMMUNITY) { PlaceholderScreen("Community") }
+            composable(Routes.HOME) { HomeScreen() }
+            composable(Routes.COMMUNITY) { CommunityScreen() }
             composable(Routes.APP_SELECTION) { AppSelectionScreen() }
-            composable(Routes.STREAK) { PlaceholderScreen("Streak") }
+            composable(Routes.STREAK) { StreakScreen() }
         }
     }
 }
