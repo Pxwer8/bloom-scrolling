@@ -109,6 +109,8 @@ class UsageTimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand: action=${intent?.action}")
+
         // Android 14+ exige startForeground() nos primeiros ~5 segundos,
         // independentemente do que o comando peça. Por isso vem antes do when.
         startForeground(
@@ -167,6 +169,8 @@ class UsageTimerService : Service() {
         tickJob = scope.launch {
             while (isActive) {
                 delay(TICK_MILLIS)
+                val elapsedSeconds = (SystemClock.elapsedRealtime() - sessionStartElapsed) / 1000
+                Log.d(TAG, "Tick: $packageName, ${elapsedSeconds}s decorridos")
                 persistElapsedMinutes(packageName, roundToNearestMinute = false)
                 checkHardStopThreshold(packageName)
             }
@@ -228,10 +232,7 @@ class UsageTimerService : Service() {
         if (elapsedSeconds >= DEMO_STOP_THRESHOLD_SECONDS && !hasTriggeredHardStopToday(packageName)) {
             markHardStopTriggeredToday(packageName)
             Log.d(TAG, "Hard-stop (demo) disparado para $packageName")
-            startActivity(
-                DelayActivity.newIntent(this, packageName)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
+            startActivity(DelayActivity.newIntent(this, packageName))
         }
     }
 

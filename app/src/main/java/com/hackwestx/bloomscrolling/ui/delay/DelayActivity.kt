@@ -83,7 +83,10 @@ class DelayActivity : ComponentActivity() {
         /** Jeito único de abrir esta tela — mesmo formato do SurveyActivity.newIntent. */
         fun newIntent(context: Context, packageName: String? = null): Intent =
             Intent(context, DelayActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // MULTIPLE_TASK: mesmo com taskAffinity="" no manifesto, sem
+                // isto uma DelayActivity anterior ainda viva na sua própria
+                // task seria reaproveitada em vez de abrir uma sessão nova.
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
                 packageName?.let { putExtra(EXTRA_PACKAGE_NAME, it) }
             }
     }

@@ -93,8 +93,12 @@ class SurveyActivity : ComponentActivity() {
         fun newIntent(context: Context, packageName: String? = null): Intent =
             Intent(context, SurveyActivity::class.java).apply {
                 // NEW_TASK: obrigatório quando quem abre não é uma Activity
-                // (um Service, por exemplo).
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // (um Service, por exemplo). MULTIPLE_TASK: sem
+                // taskAffinity="" no manifesto desta Activity, NEW_TASK
+                // sozinho reaproveitaria a task principal do app — trazendo
+                // a MainActivity de volta por baixo, em vez de só a survey
+                // sobre o app bloqueado.
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
                 packageName?.let { putExtra(EXTRA_PACKAGE_NAME, it) }
             }
     }
