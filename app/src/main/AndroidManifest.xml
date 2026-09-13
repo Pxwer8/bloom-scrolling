@@ -60,6 +60,15 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.BloomScrolling.Translucent" />
 
+        <!-- Tela de pausa/respiração antes de continuar no app monitorado. -->
+        <activity
+            android:name=".ui.delay.DelayActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/Theme.BloomScrolling.Translucent" />
+
         <service
             android:name=".service.MonitorAccessibilityService"
             android:exported="true"
