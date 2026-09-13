@@ -3,6 +3,7 @@ package com.hackwestx.bloomscrolling.service
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import com.hackwestx.bloomscrolling.data.SettingsDao
+import com.hackwestx.bloomscrolling.overlay.SurveyActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +31,16 @@ class MonitorAccessibilityService : AccessibilityService() {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val packageName = event.packageName?.toString() ?: return
 
+        // Ignore our own windows (SurveyActivity) — otherwise closing it back
+        // into the blocked app reads as a "new" switch and re-fires the survey.
+        if (packageName == applicationContext.packageName) return
+
         // Debounce: TYPE_WINDOW_STATE_CHANGED fires repeatedly for the same
         // foreground app (dialogs, keyboard, etc.) — only act on a real switch.
         if (packageName == lastPackage) return
         lastPackage = packageName
+
+        android.util.Log.d("BloomScrolling", "App switched to: $packageName")
 
         scope.launch {
             val settings = settingsDao.get(packageName)
@@ -44,12 +51,14 @@ class MonitorAccessibilityService : AccessibilityService() {
     }
 
     private fun onBlocklistedAppOpened(packageName: String) {
-        // This is the single trigger point everything else hangs off:
-        //   1. Person A: check survey-due state, launch SurveyActivity if due
-        //   2. Person B: start/refresh UsageTimerService for this packageName
-        // Wire these in during Phase 4 integration, not before — build and
-        // test each piece against a fake trigger (a button in a debug screen)
-        // first, so you're not debugging two new systems at once.
+        // "Due" is currently just "isBlocked" (already checked by the
+        // caller) — every open of a blocked app triggers the survey.
+        // ponytail: no cooldown yet, will ask on every single switch even
+        // seconds apart. Add a lastSurveyTimestamp to UserSettings if that
+        // turns out to be annoying in testing.
+        startActivity(SurveyActivity.newIntent(this, packageName))
+
+        // Still Person B's job: start/refresh UsageTimerService here too.
     }
 
     override fun onInterrupt() {}

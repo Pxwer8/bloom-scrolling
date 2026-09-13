@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".BloomScrollingApplication"
         android:allowBackup="true"
@@ -39,6 +46,31 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="skeleton_phase1" />
+        </service>
+
+        <!-- Pergunta que aparece por cima do app monitorado.
+             exported=false: só o proprio app pode abrir.
+             excludeFromRecents: nao aparece na lista de apps recentes.
+             noHistory: se o usuario sair, a tela nao fica pendurada. -->
+        <activity
+            android:name=".overlay.SurveyActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.BloomScrolling.Translucent" />
+
+        <service
+            android:name=".service.MonitorAccessibilityService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
     </application>
 
