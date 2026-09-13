@@ -14,14 +14,13 @@ BloomScrolling is an Android app built for **HackWesTX '26** ("Beyond the Feed")
 - [Run it yourself](#run-it-yourself)
 - [Repository structure](#repository-structure)
 - [Team](#team)
-- [License](#license)
 
 ## What it does
 
 - **Survey on open** — the moment you open a monitored app, a quick "why are you opening this?" prompt appears (Bored / Habit / Specific task / Messaging someone), logged with a timestamp so you can see your own patterns later.
 - **Escalating delay** — cross your daily time limit for that app and a full-screen countdown appears before you can continue; each subsequent trigger extends the wait.
 - **Warm color filter** — stay in the app past the delay and a subtle amber overlay activates, growing warmer the longer you keep scrolling.
-- **Home dashboard** — a progress ring showing % of time saved this week, plus your day streak and hours saved this week/year.
+- **Home dashboard** — a progress ring showing % of time saved this month, plus days active, all-time hours saved, and a projected hours-saved-per-year figure.
 - **Community** — a leaderboard comparing time saved against friends, to make cutting back a little bit social.
 - **App selection** — choose exactly which apps BloomScrolling watches; everything else on your phone is left alone.
 
@@ -56,10 +55,8 @@ An `AccessibilityService` is the single trigger point: it watches for foreground
 - **Room** — local persistence (survey responses, per-app usage logs, per-app settings)
 - **Hilt** — dependency injection
 - **DataStore** — user preferences (limits, survey frequency, filter intensity)
-- **WorkManager** — scheduled/background work (weekly summaries, streak checks)
 - **AccessibilityService** + **UsageStatsManager** + **WindowManager** overlays — the detection/delay/color-filter core
-- **Vico** — the weekly trend chart
-- minSdk 26, target/compile SDK 34+
+- minSdk 26, target/compile SDK 37
 
 ## Run it yourself
 
@@ -74,7 +71,7 @@ An `AccessibilityService` is the single trigger point: it watches for foreground
 5. **Pick apps to monitor** from the app-selection screen (Instagram/TikTok are good demo choices).
 6. Open a monitored app to see the full flow: survey → (keep scrolling) → delay countdown → color filter.
 
-> For a live demo/judging pass, daily limits and survey frequency can be turned down (e.g. a 30-second limit, survey on every open) in Settings so the flow is visible in under a minute instead of over a real day.
+> For a live demo/judging pass, turn down daily limits in Settings (e.g. a 30-second limit) so the flow is visible in under a minute instead of over a real day. The survey re-fires at most once every 30 seconds per app — a fixed, deliberately short cooldown for demo purposes, not yet a user-adjustable setting.
 
 ## Repository structure
 
