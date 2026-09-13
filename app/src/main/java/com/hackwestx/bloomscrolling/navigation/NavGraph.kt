@@ -69,7 +69,9 @@ fun BloomNavGraph(
             )
         }
         composable(Routes.MAIN) { MainShell(outerNavController = navController) }
-        composable(Routes.SETTINGS) { SettingsScreen() }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
