@@ -31,9 +31,15 @@ class MonitorAccessibilityService : AccessibilityService() {
     private companion object {
         const val TAG = "BloomScrolling"
 
-        // !!! VALOR DE TESTE — NAO COMMITAR !!!
-        // Valor real: 5 * 60 * 1000L (5 minutos). Baixado para 30s apenas
-        // para testar o cooldown no aparelho sem esperar.
+        // 30 segundos: valor reduzido INTENCIONALMENTE para a demo do
+        // hackathon, ver Phase 6 do plano original. Não é placeholder
+        // esquecido — com 5 minutos ninguém consegue mostrar o cooldown
+        // funcionando numa apresentação de poucos minutos.
+        //
+        // Valor pensado para uso real: 5 * 60 * 1000L (5 minutos), tempo
+        // suficiente para não repetir a pergunta numa ida e volta rápida
+        // (abrir o Instagram, olhar uma notificação, voltar) sem deixar a
+        // pessoa passar sessões longas sem nenhum check-in.
         const val SURVEY_COOLDOWN_MILLIS = 30 * 1000L
     }
 

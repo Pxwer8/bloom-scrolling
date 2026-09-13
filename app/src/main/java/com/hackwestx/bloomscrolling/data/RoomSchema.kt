@@ -52,6 +52,35 @@ data class UserSettings(
     @ColumnInfo(defaultValue = "0") val lastSurveyTimestamp: Long = 0
 )
 
+/**
+ * Estado global da streak — uma linha só, id sempre [STREAK_STATE_ID].
+ *
+ * Fica numa tabela própria (e não em user_settings) porque a streak é do
+ * usuário, não de um app: user_settings tem uma linha POR APP, então guardar
+ * isto lá significaria repetir o mesmo número em cada linha e ter que decidir
+ * qual delas é a verdadeira.
+ */
+@Entity(tableName = "streak_state")
+data class StreakState(
+    @PrimaryKey val id: Int = STREAK_STATE_ID,
+
+    // Quantos "revives" o usuário tem guardados. Começa em 1 e nunca passa
+    // de 1 (regra do hackathon: um de cada vez).
+    @ColumnInfo(defaultValue = "1") val revivesAvailable: Int = 1,
+
+    // Datas perdoadas por um revive, em "yyyy-MM-dd" separadas por vírgula.
+    // Atalho de hackathon: o certo seria uma tabela à parte com uma linha por
+    // data. Como no máximo uma data é perdoada a cada 7 dias de streak, a
+    // lista nunca passa de um punhado de itens.
+    @ColumnInfo(defaultValue = "''") val revivedDates: String = "",
+
+    // Quantos marcos de 7 dias já renderam um revive. Impede que o mesmo
+    // marco premie de novo toda vez que a tela recalcular.
+    @ColumnInfo(defaultValue = "0") val milestonesRewarded: Int = 0
+)
+
+const val STREAK_STATE_ID = 0
+
 // ---- DAOs ----
 
 data class ReasonCount(val reason: String, val count: Int)
@@ -115,6 +144,18 @@ interface SettingsDao {
     suspend fun upsert(settings: UserSettings)
 }
 
+@Dao
+interface StreakStateDao {
+    @Query("SELECT * FROM streak_state WHERE id = $STREAK_STATE_ID LIMIT 1")
+    fun observe(): Flow<StreakState?>
+
+    @Query("SELECT * FROM streak_state WHERE id = $STREAK_STATE_ID LIMIT 1")
+    suspend fun get(): StreakState?
+
+    @Upsert
+    suspend fun upsert(state: StreakState)
+}
+
 // ---- Database ----
 
 /**
@@ -132,13 +173,40 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/**
+ * v2 -> v3: cria a tabela streak_state (mecanismo de revive da streak).
+ *
+ * É um CREATE TABLE, não um ALTER: nenhuma tabela existente é tocada, então
+ * usage_log, survey_response e user_settings ficam intactos. O texto do SQL
+ * precisa bater EXATAMENTE com o que o Room gera para a entidade — foi
+ * conferido contra o AppDatabase_Impl gerado na build.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `streak_state` (" +
+                "`id` INTEGER NOT NULL, " +
+                "`revivesAvailable` INTEGER NOT NULL DEFAULT 1, " +
+                "`revivedDates` TEXT NOT NULL DEFAULT '', " +
+                "`milestonesRewarded` INTEGER NOT NULL DEFAULT 0, " +
+                "PRIMARY KEY(`id`))"
+        )
+    }
+}
+
 @Database(
-    entities = [SurveyResponse::class, UsageLog::class, UserSettings::class],
-    version = 2,
+    entities = [
+        SurveyResponse::class,
+        UsageLog::class,
+        UserSettings::class,
+        StreakState::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun surveyDao(): SurveyDao
     abstract fun usageDao(): UsageDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun streakStateDao(): StreakStateDao
 }

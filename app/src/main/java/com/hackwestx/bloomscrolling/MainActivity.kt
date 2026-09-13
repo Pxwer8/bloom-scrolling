@@ -74,9 +74,15 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f),
                             navController = navController
                         )
-                        DebugSettingsButton(onClick = { navController.navigate(Routes.SETTINGS) })
-                        DebugSurveyButton()
-                        DebugStartServiceButton(onClick = { startServiceWithPermissionCheck() })
+                        // BuildConfig.DEBUG é `true` só no build de debug. Como
+                        // é uma constante conhecida em tempo de compilação, o
+                        // compilador remove este bloco inteiro do APK de
+                        // release — o código fica aqui, mas não é publicado.
+                        if (BuildConfig.DEBUG) {
+                            DebugSettingsButton(onClick = { navController.navigate(Routes.SETTINGS) })
+                            DebugSurveyButton()
+                            DebugStartServiceButton(onClick = { startServiceWithPermissionCheck() })
+                        }
                     }
                 }
             }

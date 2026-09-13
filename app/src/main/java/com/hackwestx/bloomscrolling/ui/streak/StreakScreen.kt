@@ -2,6 +2,7 @@ package com.hackwestx.bloomscrolling.ui.streak
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,10 +31,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hackwestx.bloomscrolling.gamification.Achievement
 import com.hackwestx.bloomscrolling.gamification.DayStatus
+import com.hackwestx.bloomscrolling.gamification.ReviveOffer
 import com.hackwestx.bloomscrolling.ui.components.AmountType
 import com.hackwestx.bloomscrolling.ui.components.BloomButton
 import com.hackwestx.bloomscrolling.ui.components.BloomCard
@@ -85,6 +88,16 @@ fun StreakScreen(
             Spacer(Modifier.height(Spacing.xl))
             WeekStrip(statuses = state.weekStatuses)
 
+            // Só aparece quando existe um dia perdido E o usuário tem revive.
+            state.reviveOffer?.let { offer ->
+                Spacer(Modifier.height(Spacing.lg))
+                ReviveCard(
+                    offer = offer,
+                    onUse = { viewModel.useReviveOn(offer) },
+                    onDismiss = { viewModel.dismissReviveOffer() }
+                )
+            }
+
             Spacer(Modifier.height(Spacing.xl))
             BloomCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -120,6 +133,50 @@ fun StreakScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+/**
+ * Oferta de revive — o "streak freeze". Duas saídas explícitas: gastar o
+ * revive ou deixar zerar. Nada acontece sozinho; a escolha é do usuário.
+ */
+@Composable
+private fun ReviveCard(
+    offer: ReviveOffer,
+    onUse: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    BloomCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "You went over on ${offer.brokenDate}",
+            style = HeadingH2,
+            color = ColorTextPrimary
+        )
+        Spacer(Modifier.height(Spacing.xxs))
+        Text(
+            text = "Use your revive to bring your streak back to " +
+                "${offer.restoredStreak} ${if (offer.restoredStreak == 1) "day" else "days"}. " +
+                "You'll earn another one at your next 7-day milestone.",
+            style = BodySmall,
+            color = ColorTextSecondary
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        BloomButton(
+            text = "Revive my streak",
+            onClick = onUse,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(Spacing.xxs))
+        Text(
+            text = "Let it reset",
+            style = BodySmall,
+            color = ColorTextSecondary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onDismiss)
+                .padding(vertical = Spacing.xs),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

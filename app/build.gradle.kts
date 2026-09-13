@@ -34,6 +34,9 @@ android {
     }
     buildFeatures {
         compose = true
+        // Gera a classe BuildConfig (com o campo DEBUG). A partir do AGP 8
+        // ela vem desligada por padrão; sem isto, BuildConfig.DEBUG não existe.
+        buildConfig = true
     }
     testOptions {
         unitTests {
