@@ -1,57 +1,34 @@
 package com.hackwestx.bloomscrolling.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+// Fixed light palette on purpose — this app defines its own periwinkle
+// identity in Color.kt, so it deliberately does not follow system dark theme
+// or Android 12+ dynamic color (both would override these tokens).
+private val BloomColorScheme = lightColorScheme(
+    primary = ColorAccent,
+    onPrimary = ColorTextOnAccent,
+    secondary = ColorAccentSoft,
+    onSecondary = ColorTextPrimary,
+    background = ColorBg,
+    onBackground = ColorTextPrimary,
+    surface = ColorSurface,
+    onSurface = ColorTextPrimary,
+    surfaceVariant = ColorSurfaceAlt,
+    onSurfaceVariant = ColorTextSecondary,
+    outline = ColorBorder,
+    error = ColorNegative,
+    onError = ColorTextOnAccent
 )
 
 @Composable
 fun BloomScrollingTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = BloomColorScheme,
         typography = Typography,
         content = content
     )
