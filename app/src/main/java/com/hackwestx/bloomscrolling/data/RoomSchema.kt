@@ -59,6 +59,8 @@ interface SurveyDao {
     suspend fun reasonBreakdown(): List<ReasonCount>
 }
 
+data class DailyUsageTotal(val date: String, val totalMinutes: Int, val pickupCount: Int)
+
 @Dao
 interface UsageDao {
     @Query("SELECT * FROM usage_log WHERE date = :date AND packageName = :packageName LIMIT 1")
@@ -69,6 +71,17 @@ interface UsageDao {
 
     @Query("SELECT * FROM usage_log WHERE date = :date")
     fun observeForDate(date: String): Flow<List<UsageLog>>
+
+    @Query(
+        """
+        SELECT date, SUM(totalMinutes) as totalMinutes, SUM(pickupCount) as pickupCount
+        FROM usage_log
+        WHERE date >= :startDate
+        GROUP BY date
+        ORDER BY date ASC
+        """
+    )
+    fun observeDailyTotals(startDate: String): Flow<List<DailyUsageTotal>>
 }
 
 @Dao

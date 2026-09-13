@@ -96,6 +96,28 @@ class RoomDaoTest {
     }
 
     @Test
+    fun `observeDailyTotals sums minutes and pickups per day across packages`() = runTest {
+        usageDao.upsert(UsageLog("2026-09-10", "com.instagram.android", 10, 3))
+        usageDao.upsert(UsageLog("2026-09-10", "com.tiktok.android", 20, 5))
+        usageDao.upsert(UsageLog("2026-09-11", "com.instagram.android", 15, 4))
+
+        val totals = usageDao.observeDailyTotals("2026-09-10").first()
+        assertEquals(2, totals.size)
+        assertEquals(DailyUsageTotal("2026-09-10", totalMinutes = 30, pickupCount = 8), totals[0])
+        assertEquals(DailyUsageTotal("2026-09-11", totalMinutes = 15, pickupCount = 4), totals[1])
+    }
+
+    @Test
+    fun `observeDailyTotals excludes days before startDate`() = runTest {
+        usageDao.upsert(UsageLog("2026-09-05", "com.instagram.android", 99, 20))
+        usageDao.upsert(UsageLog("2026-09-10", "com.instagram.android", 10, 3))
+
+        val totals = usageDao.observeDailyTotals("2026-09-10").first()
+        assertEquals(1, totals.size)
+        assertEquals("2026-09-10", totals.single().date)
+    }
+
+    @Test
     fun `settings upsert replaces the existing row for the same package`() = runTest {
         settingsDao.upsert(UserSettings("com.instagram.android", dailyLimitMinutes = 30, isBlocked = true))
         settingsDao.upsert(UserSettings("com.instagram.android", dailyLimitMinutes = 60, isBlocked = false))

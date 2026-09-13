@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.hackwestx.bloomscrolling.ui.appselection.AppSelectionScreen
 import com.hackwestx.bloomscrolling.ui.onboarding.OnboardingScreen
+import com.hackwestx.bloomscrolling.ui.settings.SettingsScreen
 
 /**
  * Nomes das rotas em um só lugar. Usar as constantes daqui (em vez de
@@ -23,7 +24,6 @@ object Routes {
     const val DASHBOARD = "dashboard"
     const val SETTINGS = "settings"
     const val APP_SELECTION = "app_selection"
-    const val SURVEY_OVERLAY = "survey_overlay"
 }
 
 /**
@@ -53,9 +53,8 @@ fun BloomNavGraph(
             )
         }
         composable(Routes.DASHBOARD) { PlaceholderScreen("Dashboard") }
-        composable(Routes.SETTINGS) { PlaceholderScreen("Settings") }
+        composable(Routes.SETTINGS) { SettingsScreen() }
         composable(Routes.APP_SELECTION) { AppSelectionScreen() }
-        composable(Routes.SURVEY_OVERLAY) { PlaceholderScreen("Survey Overlay") }
     }
 }
 

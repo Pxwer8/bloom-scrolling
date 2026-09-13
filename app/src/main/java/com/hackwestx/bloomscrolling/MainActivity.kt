@@ -15,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
 import com.hackwestx.bloomscrolling.navigation.BloomNavGraph
+import com.hackwestx.bloomscrolling.navigation.Routes
 import com.hackwestx.bloomscrolling.overlay.SurveyActivity
 import com.hackwestx.bloomscrolling.ui.theme.BloomScrollingTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,16 +30,38 @@ class MainActivity : ComponentActivity() {
         setContent {
             BloomScrollingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    val navController = rememberNavController()
                     Column(modifier = Modifier.padding(innerPadding)) {
                         // Toda a navegação do app vive no NavGraph.
                         // weight(1f) = o NavGraph ocupa todo o espaço que
-                        // sobrar depois do botão de debug lá embaixo.
-                        BloomNavGraph(modifier = Modifier.weight(1f))
+                        // sobrar depois dos botões de debug lá embaixo.
+                        BloomNavGraph(
+                            modifier = Modifier.weight(1f),
+                            navController = navController
+                        )
+                        DebugSettingsButton(onClick = { navController.navigate(Routes.SETTINGS) })
                         DebugSurveyButton()
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * TEMPORÁRIO — remover assim que existir uma navegação real (bottom nav /
+ * drawer) para chegar em Settings. Por enquanto é a única forma de abrir
+ * a tela fora do fluxo linear onboarding -> app_selection.
+ */
+@Composable
+private fun DebugSettingsButton(onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text("DEBUG: Open Settings")
     }
 }
 
