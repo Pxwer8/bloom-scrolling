@@ -3,6 +3,7 @@ package com.hackwestx.bloomscrolling.service
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import com.hackwestx.bloomscrolling.data.SettingsDao
+import com.hackwestx.bloomscrolling.data.UserSettings
 import com.hackwestx.bloomscrolling.overlay.SurveyActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +28,15 @@ class MonitorAccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var lastPackage: String? = null
 
+    private companion object {
+        const val TAG = "BloomScrolling"
+
+        // !!! VALOR DE TESTE — NAO COMMITAR !!!
+        // Valor real: 5 * 60 * 1000L (5 minutos). Baixado para 30s apenas
+        // para testar o cooldown no aparelho sem esperar.
+        const val SURVEY_COOLDOWN_MILLIS = 30 * 1000L
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val packageName = event.packageName?.toString() ?: return
@@ -45,7 +55,7 @@ class MonitorAccessibilityService : AccessibilityService() {
         scope.launch {
             val settings = settingsDao.get(packageName)
             if (settings?.isBlocked == true) {
-                onBlocklistedAppOpened(packageName)
+                onBlocklistedAppOpened(settings)
             } else {
                 // Trocou para um app que não é monitorado: fecha a contagem que
                 // estiver aberta. A decisão de blocklist acima não mudou — isto
@@ -55,16 +65,37 @@ class MonitorAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun onBlocklistedAppOpened(packageName: String) {
-        // "Due" is currently just "isBlocked" (already checked by the
-        // caller) — every open of a blocked app triggers the survey.
-        // ponytail: no cooldown yet, will ask on every single switch even
-        // seconds apart. Add a lastSurveyTimestamp to UserSettings if that
-        // turns out to be annoying in testing.
+    /**
+     * Chamado só quando o app já foi confirmado como bloqueado (o `isBlocked`
+     * é decidido por quem chama — esta função não mexe nessa regra).
+     */
+    private suspend fun onBlocklistedAppOpened(settings: UserSettings) {
+        val packageName = settings.packageName
+
         // Timer primeiro, survey depois: a SurveyActivity é do nosso próprio
         // pacote, e o filtro lá em cima ignora eventos dela — então abrir a
         // pergunta não interrompe a contagem que acabou de começar.
+        //
+        // A contagem de uso NÃO é afetada pelo cooldown: ela começa toda vez,
+        // com ou sem pergunta. O cooldown silencia só a survey.
         UsageTimerService.start(this, packageName)
+
+        val now = System.currentTimeMillis()
+        val elapsedSinceLastSurvey = now - settings.lastSurveyTimestamp
+
+        if (elapsedSinceLastSurvey < SURVEY_COOLDOWN_MILLIS) {
+            android.util.Log.d(
+                TAG,
+                "Survey em cooldown para $packageName " +
+                    "(${elapsedSinceLastSurvey / 1000}s de ${SURVEY_COOLDOWN_MILLIS / 1000}s)"
+            )
+            return
+        }
+
+        // Grava o carimbo ANTES de abrir a tela. Se gravássemos depois, duas
+        // trocas quase simultâneas poderiam passar as duas pela checagem acima
+        // e abrir a survey em duplicado.
+        settingsDao.upsert(settings.copy(lastSurveyTimestamp = now))
 
         startActivity(SurveyActivity.newIntent(this, packageName))
     }

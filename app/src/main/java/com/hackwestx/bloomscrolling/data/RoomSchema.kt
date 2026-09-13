@@ -1,8 +1,11 @@
 package com.hackwestx.bloomscrolling.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
@@ -41,7 +44,12 @@ data class UsageLog(
 data class UserSettings(
     @PrimaryKey val packageName: String,
     val dailyLimitMinutes: Int,
-    val isBlocked: Boolean
+    val isBlocked: Boolean,
+    // Quando a survey foi mostrada pela última vez para ESTE app (epoch millis).
+    // 0 = nunca mostrada, então a primeira abertura sempre pergunta.
+    // O defaultValue precisa bater com o DEFAULT 0 da MIGRATION_1_2 abaixo,
+    // senão o Room reclama que o schema do banco não confere com o esperado.
+    @ColumnInfo(defaultValue = "0") val lastSurveyTimestamp: Long = 0
 )
 
 // ---- DAOs ----
@@ -109,9 +117,24 @@ interface SettingsDao {
 
 // ---- Database ----
 
+/**
+ * v1 -> v2: acrescenta user_settings.lastSurveyTimestamp (cooldown da survey).
+ *
+ * ADD COLUMN ... DEFAULT 0 preenche as linhas que já existem, então nenhum
+ * dado de teste no aparelho é perdido — é por isso que vale escrever a
+ * migration em vez de deixar o fallbackToDestructiveMigration apagar tudo.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE user_settings ADD COLUMN lastSurveyTimestamp INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+
 @Database(
     entities = [SurveyResponse::class, UsageLog::class, UserSettings::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
