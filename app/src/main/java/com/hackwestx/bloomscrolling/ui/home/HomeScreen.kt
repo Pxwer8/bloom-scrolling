@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -84,13 +84,15 @@ fun HomeScreen(
 
         item {
             Spacer(Modifier.height(Spacing.xl))
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 ProgressRing(percent = state.summary.percentSavedThisMonth)
+                Spacer(Modifier.height(Spacing.xs))
+                Text("saved this month", style = BodySmall, color = ColorTextSecondary)
             }
         }
 
@@ -135,7 +137,7 @@ fun HomeScreen(
         } else {
             items(state.recentEntries) { entry ->
                 BloomListItem(
-                    leadingIcon = Icons.Filled.LocalFireDepartment,
+                    leadingIcon = Icons.Filled.Schedule,
                     title = "${entry.appName} avoided",
                     subtitle = entry.subtitle,
                     amountText = "+${entry.minutesSaved} min",
