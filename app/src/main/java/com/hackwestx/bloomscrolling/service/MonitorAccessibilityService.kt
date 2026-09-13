@@ -48,9 +48,11 @@ class MonitorAccessibilityService : AccessibilityService() {
                 onBlocklistedAppOpened(packageName)
             } else {
                 // Trocou para um app que não é monitorado: fecha a contagem que
-                // estiver aberta. A decisão de blocklist acima não mudou — isto
-                // é só o outro lado do gatilho do timer.
+                // estiver aberta e tira o filtro de cor. A decisão de blocklist
+                // acima não mudou — isto é só o outro lado do gatilho do timer
+                // e do filtro.
                 UsageTimerService.stop(this@MonitorAccessibilityService)
+                ColorFilterService.stop(this@MonitorAccessibilityService)
             }
         }
     }
@@ -65,6 +67,7 @@ class MonitorAccessibilityService : AccessibilityService() {
         // pacote, e o filtro lá em cima ignora eventos dela — então abrir a
         // pergunta não interrompe a contagem que acabou de começar.
         UsageTimerService.start(this, packageName)
+        ColorFilterService.start(this)
 
         startActivity(SurveyActivity.newIntent(this, packageName))
     }
