@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.hackwestx.bloomscrolling.data.UsageDao
 import com.hackwestx.bloomscrolling.data.UsageLog
+import com.hackwestx.bloomscrolling.ui.delay.DelayActivity
 import com.hackwestx.bloomscrolling.util.startOfToday
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +55,32 @@ class UsageTimerService : Service() {
 
     /** Quantos segundos desta sessão já viraram minutos gravados no banco. */
     private var persistedSeconds = 0L
+
+    /**
+     * Pacotes que já dispararam o hard-stop (DelayActivity) hoje. Por pacote,
+     * não um Boolean único — senão o Instagram disparar o dele deixaria o
+     * TikTok mudo pelo resto do dia. Zera sozinho na virada do dia.
+     */
+    private val hardStopNotifiedPackages = mutableSetOf<String>()
+    private var hardStopTrackingDate = startOfToday()
+
+    private fun hasTriggeredHardStopToday(packageName: String): Boolean {
+        rolloverHardStopTrackingIfNeeded()
+        return packageName in hardStopNotifiedPackages
+    }
+
+    private fun markHardStopTriggeredToday(packageName: String) {
+        rolloverHardStopTrackingIfNeeded()
+        hardStopNotifiedPackages.add(packageName)
+    }
+
+    private fun rolloverHardStopTrackingIfNeeded() {
+        val today = startOfToday()
+        if (today != hardStopTrackingDate) {
+            hardStopTrackingDate = today
+            hardStopNotifiedPackages.clear()
+        }
+    }
 
     /**
      * A tela apagar NÃO gera evento de acessibilidade — sem isto, o Instagram
@@ -141,6 +168,7 @@ class UsageTimerService : Service() {
             while (isActive) {
                 delay(TICK_MILLIS)
                 persistElapsedMinutes(packageName, roundToNearestMinute = false)
+                checkHardStopThreshold(packageName)
             }
         }
     }
@@ -190,6 +218,24 @@ class UsageTimerService : Service() {
     }
 
     /**
+     * Checa o limiar de demo a cada tick: hard-stop (DelayActivity) aos
+     * [DEMO_STOP_THRESHOLD_SECONDS]s. Baseado no mesmo relógio monotônico de
+     * [persistElapsedMinutes] — não no que já foi persistido em minutos.
+     */
+    private suspend fun checkHardStopThreshold(packageName: String) {
+        val elapsedSeconds = (SystemClock.elapsedRealtime() - sessionStartElapsed) / 1000
+
+        if (elapsedSeconds >= DEMO_STOP_THRESHOLD_SECONDS && !hasTriggeredHardStopToday(packageName)) {
+            markHardStopTriggeredToday(packageName)
+            Log.d(TAG, "Hard-stop (demo) disparado para $packageName")
+            startActivity(
+                DelayActivity.newIntent(this, packageName)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
+
+    /**
      * Soma minutos/pickups à linha de hoje daquele app, criando-a se não existir.
      *
      * O mutex é necessário porque isto é um ler-somar-gravar: se o tick e o
@@ -218,6 +264,12 @@ class UsageTimerService : Service() {
         private const val TAG = "BloomScrolling"
         private const val NOTIFICATION_ID = 1002
         private const val SECONDS_PER_MINUTE = 60L
+
+        // Segundos de sessão contínua até forçar a pausa (DelayActivity).
+        // DEMO_: valor encurtado de propósito pra demonstração — sem relação
+        // com dailyLimitMinutes (o limite diário de verdade, nos Settings).
+        // Ajustar pra uso real antes de qualquer coisa além do demo.
+        private const val DEMO_STOP_THRESHOLD_SECONDS = 45L
         private const val TICK_MILLIS = 15_000L
 
         private const val ACTION_START = "com.hackwestx.bloomscrolling.TIMER_START"
