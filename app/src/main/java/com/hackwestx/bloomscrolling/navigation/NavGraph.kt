@@ -2,7 +2,9 @@ package com.hackwestx.bloomscrolling.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.hackwestx.bloomscrolling.ui.appselection.AppSelectionScreen
+import com.hackwestx.bloomscrolling.ui.components.BloomBottomNav
 import com.hackwestx.bloomscrolling.ui.onboarding.OnboardingScreen
 import com.hackwestx.bloomscrolling.ui.settings.SettingsScreen
 
@@ -20,41 +23,66 @@ import com.hackwestx.bloomscrolling.ui.settings.SettingsScreen
  * digitar a String solta) evita erro de digitação silencioso na navegação.
  */
 object Routes {
+    const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
-    const val DASHBOARD = "dashboard"
+    const val MAIN = "main"
     const val SETTINGS = "settings"
+
+    // Tabs inside the bottom-nav shell (MAIN).
+    const val HOME = "home"
+    const val COMMUNITY = "community"
     const val APP_SELECTION = "app_selection"
+    const val STREAK = "streak"
 }
 
-/**
- * Mapa de telas do app. Por enquanto cada rota é só um placeholder;
- * conforme cada tela real ficar pronta, troque o Placeholder(...)
- * pela Composable de verdade, ex.:
- *     composable(Routes.ONBOARDING) { OnboardingScreen(onAllGranted = { ... }) }
- */
 @Composable
 fun BloomNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Routes.ONBOARDING
+    startDestination: String = Routes.SPLASH
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
+        composable(Routes.SPLASH) {
+            PlaceholderScreen("Splash")
+        }
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onAllGranted = {
-                    navController.navigate(Routes.APP_SELECTION) {
+                    navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 }
             )
         }
-        composable(Routes.DASHBOARD) { PlaceholderScreen("Dashboard") }
+        composable(Routes.MAIN) { MainShell() }
         composable(Routes.SETTINGS) { SettingsScreen() }
-        composable(Routes.APP_SELECTION) { AppSelectionScreen() }
+    }
+}
+
+/**
+ * Bottom-nav shell: Home / Community / Apps / Streak share one Scaffold with
+ * BloomBottomNav, in their own nested NavHost so tab switches don't touch the
+ * outer graph's back stack (Splash/Onboarding/Settings).
+ */
+@Composable
+private fun MainShell() {
+    val innerNavController = rememberNavController()
+
+    Scaffold(bottomBar = { BloomBottomNav(innerNavController) }) { innerPadding ->
+        NavHost(
+            navController = innerNavController,
+            startDestination = Routes.HOME,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable(Routes.HOME) { PlaceholderScreen("Home") }
+            composable(Routes.COMMUNITY) { PlaceholderScreen("Community") }
+            composable(Routes.APP_SELECTION) { AppSelectionScreen() }
+            composable(Routes.STREAK) { PlaceholderScreen("Streak") }
+        }
     }
 }
 
