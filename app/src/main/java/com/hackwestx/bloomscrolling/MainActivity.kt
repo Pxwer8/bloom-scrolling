@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,17 +62,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BloomScrollingTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val navController = rememberNavController()
-                    // Debug buttons (Settings/Survey/Start Service) removed from
-                    // the visible UI - Settings is now reachable for real via
-                    // the gear icon on Home. Their composables are still defined
-                    // below for quick manual testing; just not called anymore.
-                    BloomNavGraph(
-                        modifier = Modifier.padding(innerPadding),
-                        navController = navController
-                    )
-                }
+                val navController = rememberNavController()
+                // No Scaffold here on purpose: MainActivity has no top/bottom
+                // bar of its own. Wrapping BloomNavGraph in one used to reserve
+                // system-bar inset space here AND again inside MainShell's own
+                // Scaffold (for BloomBottomNav) and SettingsScreen's own
+                // Scaffold (for its TopAppBar) - double-applying the bottom
+                // system-bar inset, which showed up as a large white gap below
+                // the bottom nav. Only the screens that actually have a bar
+                // should own a Scaffold.
+                // Debug buttons (Settings/Survey/Start Service) removed from
+                // the visible UI - Settings is now reachable for real via
+                // the gear icon on Home. Their composables are still defined
+                // below for quick manual testing; just not called anymore.
+                BloomNavGraph(
+                    modifier = Modifier.fillMaxSize(),
+                    navController = navController
+                )
             }
         }
     }
